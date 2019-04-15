@@ -1,0 +1,87 @@
+service: wedding-app
+
+provider:
+  name: aws
+  region: ap-northeast-1
+  runtime: nodejs8.10
+  environment:
+    DYNAMODB_TABLE: YourTableName
+    LINE_BUCKET: YourBucketName
+    APP_BUCKET: YourBucketName
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:*
+      Resource:
+        {
+          "Fn::Join": ["", ["arn:aws:s3:::", { "Ref": "PicturesBucket" }, "*"]],
+        }
+    - Effect: Allow
+      Action:
+        - s3:*
+      Resource:
+        {
+          "Fn::Join":
+            [
+              "",
+              [
+                "arn:aws:s3:::",
+                "${self:provider.environment.LINE_BUCKET}",
+                "*",
+              ],
+            ],
+        }
+    - Effect: Allow
+      Action:
+        - dynamodb:*
+      Resource: "arn:aws:dynamodb:ap-northeast-1:*:*"
+package:
+  exclude:
+    - node_modules/.bin/**
+    - node_modules/aws-sdk/**
+functions:
+  get-photos:
+    handler: get-photos.handler
+    events:
+      - http:
+          path: photos
+          method: get
+          cors: true
+  post-photos:
+    handler: post-photos.handler
+    events:
+      - s3:
+          bucket: ${self:provider.environment.LINE_BUCKET}
+          event: s3:ObjectCreated:*
+resources:
+  Resources:
+    PicturesBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.APP_BUCKET}
+    PicturesTable:
+      Type: "AWS::DynamoDB::Table"
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: filename
+            AttributeType: S
+          - AttributeName: status
+            AttributeType: S
+        KeySchema:
+          - AttributeName: filename
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        GlobalSecondaryIndexes:
+          - IndexName: statusIndex
+            KeySchema:
+              - AttributeName: status
+                KeyType: HASH
+            Projection:
+              ProjectionType: KEYS_ONLY
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5

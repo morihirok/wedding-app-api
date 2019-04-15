@@ -1,0 +1,18 @@
+{
+  "name": "wedding-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "",
+  "scripts": {
+    "deploy": "npx serverless deploy",
+    "remove": "npx serverless remove",
+    "invoke": "npx serverless invoke -l -f"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.400.0",
+    "lodash": "^4.17.11",
+    "uuid": "^3.3.2"
+  }
+}
